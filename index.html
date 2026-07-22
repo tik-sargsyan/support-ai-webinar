@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Picsart Support · Automate the Boring Part</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0a070c;--surface:#161019;--surface2:#1e1624;--line:#2e2434;
+  --brand:#EC5FDE;         /* bright magenta, accents, borders, highlights */
+  --brand-2:#FF5AA0;       /* pink, gradient partner */
+  --deep:#C209C1;          /* exact Picsart logo magenta */
+  --white:#fff;--muted:#9a8fa6;--glow:rgba(236,95,222,.5);
+  --h:'Barlow',system-ui,sans-serif;--b:'Inter',system-ui,sans-serif;--m:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--ink);color:var(--white);font-family:var(--b);overflow:hidden}
+.deck{position:fixed;inset:0}
+.slide{position:absolute;inset:0;display:flex;align-items:center;padding:7vh 8vw;opacity:0;visibility:hidden;transform:translateY(14px);transition:opacity .5s ease, transform .5s ease}
+.slide.active{opacity:1;visibility:visible;transform:none}
+.slide.center{justify-content:center;text-align:center}
+.wrap{width:100%;max-width:1200px}
+.slide.center .wrap{max-width:1020px}
+.kicker{font-family:var(--h);font-weight:700;font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:var(--brand);margin-bottom:24px}
+h1.title{font-family:var(--h);font-weight:800;text-transform:uppercase;font-size:clamp(32px,5.4vw,80px);line-height:.98;letter-spacing:-.01em}
+.title .g{color:var(--brand)}
+.title .grad{background:linear-gradient(100deg,var(--deep) 10%,var(--brand-2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{font-size:clamp(17px,2vw,24px);color:var(--muted);margin-top:22px;max-width:860px;line-height:1.38}
+.slide.center .sub{margin-left:auto;margin-right:auto}
+.body{margin-top:24px;font-size:clamp(16px,1.5vw,20px);line-height:1.5}
+.rule{width:72px;height:8px;background:var(--brand);border-radius:2px;margin:22px 0}
+.slide.center .rule{margin-left:auto;margin-right:auto}
+.num{font-family:var(--h);font-weight:900;font-size:clamp(80px,16vw,200px);line-height:.82;letter-spacing:-.03em;
+  background:linear-gradient(100deg,var(--deep),var(--brand-2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cap{font-size:clamp(15px,1.5vw,21px);color:var(--muted);margin-top:16px;max-width:880px;line-height:1.42}
+.cap b{color:#fff}
+.src{font-size:12px;color:var(--line);margin-top:14px;letter-spacing:.04em;text-transform:uppercase}
+/* blocks, the repeated primitive */
+.blocks{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-top:8px}
+.block{border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;padding:18px 22px;background:linear-gradient(180deg,rgba(236,95,222,.05),transparent)}
+.block .bl{font-family:var(--h);font-weight:800;text-transform:uppercase;color:var(--brand);font-size:20px;letter-spacing:.02em}
+.block p{color:#cfc6d4;margin-top:6px;font-size:15.5px;line-height:1.45}
+/* cards */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+.card{border:1px solid var(--line);border-radius:12px;padding:22px;background:var(--surface);position:relative}
+.card.good{border-color:var(--brand);box-shadow:0 0 0 1px rgba(236,95,222,.28)}
+.card .tag{font-family:var(--h);font-weight:800;letter-spacing:.1em;text-transform:uppercase;font-size:13px;margin-bottom:10px;color:var(--brand)}
+.card .tag.mut{color:var(--muted)}
+.card h3{font-family:var(--h);font-weight:800;text-transform:uppercase;font-size:20px;margin-bottom:8px;line-height:1.05}
+.card p{font-size:15.5px;line-height:1.48;color:#cfc6d4}
+.card p b{color:#fff}
+/* rows / matrix */
+.rows{margin-top:8px;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr auto 1.1fr;gap:22px;align-items:center;padding:15px 0;border-bottom:1px solid var(--line);font-size:clamp(15px,1.5vw,19px)}
+.row .a{color:var(--muted)}.row .arw{color:var(--brand);font-family:var(--h);font-weight:800}.row .b{font-weight:600}.row .b b{color:var(--brand)}
+/* checklist */
+.checklist{list-style:none;margin-top:6px;font-size:clamp(16px,1.6vw,21px);line-height:1.8}
+.checklist li:before{content:"›";color:var(--brand);font-family:var(--h);font-weight:800;margin-right:14px}
+.checklist li b{color:#fff}
+/* recap */
+.recaplist{list-style:none;margin-top:6px}
+.recaplist li{display:flex;gap:20px;align-items:baseline;margin:10px 0;font-size:clamp(16px,1.7vw,23px)}
+.recaplist .n{font-family:var(--h);font-weight:900;font-size:32px;line-height:1;min-width:42px;
+  background:linear-gradient(100deg,var(--deep),var(--brand-2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.recaplist li b{color:var(--brand)}
+/* glossary */
+.gloss{display:grid;grid-template-columns:1fr 1fr;gap:2px 40px;margin-top:8px}
+.gloss div{display:flex;gap:16px;font-size:clamp(14px,1.35vw,18px);line-height:1.4;padding:10px 0;border-bottom:1px solid var(--line)}
+.gloss .t{font-family:var(--h);font-weight:800;color:var(--brand);min-width:118px;text-transform:uppercase;font-size:13px;letter-spacing:.04em;padding-top:2px}
+.gloss .d{color:#cfc6d4}
+.gloss .d b{color:#fff}
+/* mono / terminal */
+.mono{font-family:var(--m);font-size:clamp(13px,1.35vw,16.5px);line-height:1.65;background:#0d0910;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:10px;padding:20px 22px;color:#e6dcec;white-space:pre-wrap;margin-top:6px}
+.mono .c{color:var(--brand)}
+.mono .u{color:#8fd0ff}
+.mono .ok{color:#57e39b}
+.mono .dim{color:var(--muted)}
+/* flow (node chain) */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-top:14px}
+.flow .node{flex:1 1 130px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:15px 13px;text-align:center;min-width:120px}
+.flow .node.hot{border-color:var(--brand);background:linear-gradient(180deg,rgba(236,95,222,.09),var(--surface));box-shadow:0 0 0 1px rgba(236,95,222,.25)}
+.flow .node .nt{font-family:var(--h);font-weight:800;text-transform:uppercase;color:var(--brand);font-size:13.5px;letter-spacing:.02em}
+.flow .node.hot .nt{color:#fff}
+.flow .node .nd{color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.35}
+.flow .arw{display:flex;align-items:center;justify-content:center;color:var(--brand);font-family:var(--h);font-weight:800;font-size:22px;padding:0 5px;flex:0 0 auto}
+.flowcap{margin-top:16px}
+/* chips */
+.chiprow{margin-top:14px}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:8px 13px;margin:5px 7px 0 0;font-family:var(--m);font-size:13px;color:#d9cfe0;background:var(--surface)}
+.chip.g{border-color:var(--brand);color:var(--brand)}
+.chip b{color:#fff;font-family:var(--h);font-weight:700}
+/* svg diagrams */
+.dsvg{display:block;width:100%;max-width:1000px;height:auto;margin:8px auto 0}
+/* screenshot showcase */
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.shots.three{grid-template-columns:repeat(3,1fr)}
+.shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.shot img{width:100%;display:block;border-bottom:1px solid var(--line);aspect-ratio:16/10;object-fit:cover;object-position:top}
+.shot .lab{padding:12px 15px}
+.shot .lab b{display:block;color:var(--brand);font-family:var(--h);font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:.03em;margin-bottom:3px}
+.shot .lab span{color:var(--muted);font-size:12.5px;line-height:1.35}
+/* section divider */
+.divider .num{margin-bottom:6px}
+/* chrome */
+.logo{position:fixed;top:22px;left:28px;z-index:5;display:flex;align-items:center;gap:12px}
+.logo svg{height:22px;width:auto}
+.logo .tag{font-family:var(--h);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-left:1px solid var(--line);padding-left:12px}
+.by{position:fixed;top:24px;right:30px;font-family:var(--h);font-weight:700;font-size:13px;letter-spacing:.03em;color:var(--muted);z-index:5}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--deep),var(--brand-2));width:0;z-index:6;transition:width .4s ease}
+.counter{position:fixed;bottom:18px;right:24px;font-family:var(--m);font-size:13px;color:var(--muted);z-index:6}
+.counter b{color:#fff}
+.hint{position:fixed;bottom:18px;left:28px;font-family:var(--m);font-size:12px;color:var(--line);z-index:6}
+.nav{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:6}
+.nav button{background:var(--surface);border:1px solid var(--line);color:var(--muted);width:38px;height:32px;border-radius:8px;cursor:pointer;font-size:16px}
+.nav button:hover{border-color:var(--brand);color:var(--brand)}
+.notes{position:fixed;left:0;right:0;bottom:0;background:rgba(10,7,12,.98);border-top:2px solid var(--brand);padding:18px 28px 22px;z-index:8;transform:translateY(110%);transition:transform .35s ease;max-height:44vh;overflow:auto}
+.notes.on{transform:none}
+.notes .nk{font-family:var(--h);font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--brand);font-size:12px;margin-bottom:8px}
+.notes .nt{font-size:17px;line-height:1.5;color:#e6dcec;max-width:1040px}
+.notes .vis{margin-top:10px;font-size:13px;color:var(--muted)}
+/* cold-open pulse */
+.pulse{margin:30px auto 0;width:150px;height:150px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center}
+.pulse:before,.pulse:after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--brand);opacity:0;animation:ring 3s ease-out infinite}
+.pulse:after{animation-delay:1.5s}
+.pulse .core{width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 40% 35%,var(--brand-2),var(--deep));box-shadow:0 0 46px var(--glow)}
+@keyframes ring{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+.tbar{width:180px;height:12px;border-radius:3px;background:linear-gradient(90deg,var(--deep),var(--brand-2));margin:26px auto 0}
+@media (max-width:760px){.blocks,.cards,.cols3,.gloss{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="logo">
+  <svg viewBox="0 0 104 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Picsart">
+    <path d="M53.7529 15.3608C52.7322 14.6348 51.2803 14.1446 49.1843 13.8142C46.5841 13.3674 45.1743 12.8942 45.1743 11.6687C45.1743 10.7116 46.066 9.6877 48.5681 9.6877C49.8052 9.6877 50.7528 10.0802 51.3846 10.8543C51.6849 11.2204 51.9121 11.6734 52.0615 12.1977C52.1206 12.4056 52.3105 12.5514 52.5252 12.5514L54.7815 12.5498C54.9231 12.5498 55.0585 12.4878 55.1487 12.3792C55.2405 12.2691 55.2794 12.1263 55.2545 11.9852C54.8608 9.75596 53.5195 8.53043 53.1181 8.20776C51.9463 7.26612 50.4152 6.78987 48.5681 6.78987C46.6417 6.78987 44.9798 7.25992 43.7645 8.15036C42.529 9.05632 41.8755 10.3067 41.8755 11.768C41.8755 15.2398 45.0685 16.2435 48.5199 16.8113C51.7876 17.2953 52.228 18.1826 52.228 18.9877C52.228 20.2893 50.826 21.0991 48.5681 21.0991C48.1744 21.0991 47.801 21.0665 47.4571 21.0029C47.4478 20.9982 47.4384 20.9936 47.4275 20.992C45.9384 20.6942 44.9425 19.7681 44.3823 18.1656C44.3154 17.9732 44.1333 17.8429 43.9279 17.8429H41.5456C41.4024 17.8429 41.2686 17.9065 41.1768 18.0151C41.085 18.1252 41.0477 18.2695 41.0726 18.4091C41.2375 19.3089 41.6685 20.0845 41.6872 20.1171L41.6888 20.1202C42.7158 22.3308 44.6888 23.651 47.398 23.9395C47.4026 23.9395 47.4057 23.9411 47.4104 23.9395C47.7901 23.9798 48.1791 24 48.5681 24C50.5256 24 52.2965 23.4989 53.5538 22.5899C54.8251 21.6699 55.5268 20.3684 55.5268 18.9226C55.5268 17.3744 54.9464 16.2094 53.7529 15.3608Z" fill="#EC5FDE"/>
+    <path d="M21.8862 6.89707H19.0137C18.8456 6.89707 18.7103 7.03203 18.7103 7.19958V23.5953C18.7103 23.7628 18.8456 23.8978 19.0137 23.8978H21.8862C22.0543 23.8978 22.1896 23.7628 22.1896 23.5953V7.19958C22.1881 7.03203 22.0527 6.89707 21.8862 6.89707Z" fill="#EC5FDE"/>
+    <path d="M103.853 19.1725C103.724 19.0111 103.533 18.9196 103.326 18.9196H101.076C100.797 18.9196 100.55 19.0902 100.446 19.3555C100.081 20.2723 99.2412 20.7563 98.0073 20.7563H97.9948C96.2645 20.7548 95.3511 19.8302 95.3511 18.0835V10.1253C95.3511 10.0586 95.4055 10.0058 95.4709 10.0058H102.218C102.59 10.0058 102.892 9.70488 102.892 9.33412V7.56874C102.892 7.19798 102.59 6.89703 102.218 6.89703H95.4709C95.404 6.89703 95.3511 6.84273 95.3511 6.77758V3.17235C95.3511 2.80159 95.0492 2.50064 94.6773 2.50064H92.5392C92.1673 2.50064 91.8655 2.80159 91.8655 3.17235V18.2184C91.8655 21.7306 94.2602 23.9986 97.9652 23.9986L97.9995 23.997H98.015C98.0259 23.997 98.0353 23.9986 98.0462 23.9986C101.161 23.9986 103.382 22.4038 103.983 19.734C104.029 19.537 103.981 19.3307 103.853 19.1725Z" fill="#EC5FDE"/>
+    <path d="M88.2089 8.96805C86.8395 7.59825 85.0158 6.82415 83.0708 6.79157C81.0946 6.759 79.2226 7.49586 77.7988 8.87342C76.3439 10.2804 75.5425 12.1622 75.5425 14.1711C75.5425 14.1711 75.5425 14.8397 75.5425 15.8294V23.5984C75.5425 23.7659 75.6779 23.9009 75.8459 23.9009H78.7184C78.8865 23.9009 79.0219 23.7659 79.0219 23.5984V14.0734C79.0219 13.0294 79.4405 12.0505 80.2014 11.3183C80.9623 10.5861 81.966 10.1951 83.0272 10.2199C85.0656 10.2649 86.8536 11.9915 86.8536 13.9136L86.852 14.0858C86.8504 14.168 86.8831 14.2456 86.9422 14.3045C87.0014 14.3635 87.0792 14.3945 87.1632 14.396C87.8137 14.3976 89.3433 14.3976 90.0217 14.396C90.1929 14.396 90.3329 14.258 90.3329 14.0889V14.0703C90.3329 12.1513 89.5782 10.3394 88.2089 8.96805Z" fill="#EC5FDE"/>
+    <path d="M39.3467 17.8462H36.801C36.6936 17.8462 36.594 17.8927 36.5256 17.9719C36.496 18.0044 36.4727 18.0401 36.4555 18.082C35.7631 19.8536 34.2879 20.8712 32.4051 20.8712C31.0031 20.8712 29.7364 20.3236 28.8386 19.3308C27.9423 18.3395 27.449 16.948 27.449 15.4107C27.449 13.8594 27.9423 12.457 28.8386 11.4611C29.7349 10.4651 31.0015 9.91751 32.4051 9.91751C34.3144 9.91751 35.802 10.9445 36.4882 12.7347C36.5442 12.8805 36.6796 12.9736 36.8321 12.9736H39.3778C39.4945 12.9736 39.6019 12.9208 39.675 12.8262C39.7326 12.7502 39.756 12.654 39.7497 12.5594C39.7326 12.3174 39.689 12.0645 39.6206 11.8117C39.6097 11.7651 39.5848 11.6875 39.5848 11.6875C39.2331 10.5179 38.4753 9.61346 38.4426 9.57468C38.4411 9.57312 38.4395 9.57157 38.438 9.57002C37.0468 7.77517 34.9057 6.78854 32.4051 6.78854C30.0119 6.78854 27.8505 7.70226 26.3209 9.36215C24.8582 10.9491 24.0521 13.0977 24.0521 15.4091C24.0521 17.7035 24.8488 19.8365 26.2975 21.4158C27.8458 23.1051 29.9574 23.9971 32.4067 23.9971C33.4492 23.9971 34.4015 23.8435 35.2511 23.5395C37.2211 22.7592 38.7787 21.4514 39.5895 19.005C39.6579 18.7522 39.7031 18.4993 39.7186 18.2573C39.7248 18.1627 39.7031 18.0665 39.6439 17.9905C39.5708 17.899 39.4634 17.8462 39.3467 17.8462Z" fill="#EC5FDE"/>
+    <path d="M20.4683 0C19.0476 0 17.8899 1.15262 17.8899 2.5705C17.8899 3.98839 19.046 5.14101 20.4683 5.14101C21.8687 5.14101 23.0093 3.98839 23.0093 2.5705C23.0093 1.15262 21.8687 0 20.4683 0Z" fill="#FF5AA0"/>
+    <path d="M8.44166 0H8.42921C6.22893 0 4.14692 0.85942 2.56595 2.42158C2.41657 2.56895 2.13959 2.87766 2.13959 2.87766C2.04467 2.98625 1.95286 3.0964 1.86417 3.20964C1.85327 3.2236 1.82838 3.25618 1.82838 3.25618C0.717346 4.67717 0.0746912 6.41152 0 8.24982V23.5937C0 23.6558 0.0186728 23.7147 0.0513502 23.7628C0.105812 23.8435 0.199176 23.8962 0.303433 23.8962H3.17282C3.34087 23.8962 3.47625 23.7613 3.47625 23.5937V15.7845C3.47625 15.7302 3.5136 15.7054 3.52916 15.6976C3.56339 15.6805 3.60229 15.6836 3.63341 15.7054C5.04632 16.7044 6.70509 17.2241 8.42765 17.2241C9.74253 17.2241 10.964 16.92 12.0922 16.3678C14.9258 14.9809 16.8833 12.0303 16.8833 8.60817C16.8833 3.84878 13.1036 0 8.44166 0ZM8.42921 13.9338C5.60028 13.9338 3.29886 11.5479 3.29886 8.61592C3.29886 5.68397 5.60028 3.29806 8.42921 3.29806C11.2581 3.29806 13.5596 5.68397 13.5596 8.61592C13.5596 11.5479 11.2581 13.9338 8.42921 13.9338Z" fill="#EC5FDE"/>
+    <path d="M73.5754 15.2928C73.521 10.5939 69.7615 6.78854 65.1447 6.78854C60.4951 6.78854 56.7123 10.6497 56.7123 15.3952C56.7123 19.2036 59.1507 22.4412 62.5165 23.5705C62.5305 23.5752 62.546 23.5798 62.56 23.586C62.5989 23.5984 62.6378 23.6124 62.6783 23.6248C63.4206 23.8668 64.2422 23.9987 65.1073 23.9987C67.208 23.9987 69.206 23.2106 70.261 22.0161C70.3093 21.9618 70.4011 21.9959 70.4011 22.0688C70.4011 22.6894 70.4011 23.3812 70.4011 23.51V23.5907C70.4011 23.7598 70.5396 23.8978 70.7092 23.8978H73.2689C73.4385 23.8978 73.577 23.7598 73.577 23.5907V15.2928H73.5754ZM65.1447 20.6944C62.2831 20.6944 59.9552 18.3163 59.9552 15.3952C59.9552 12.4741 62.2831 10.0959 65.1447 10.0959C68.0063 10.0959 70.3342 12.4741 70.3342 15.3952C70.3342 18.3163 68.0063 20.6944 65.1447 20.6944Z" fill="#EC5FDE"/>
+  </svg>
+  <span class="tag">AI for Support</span>
+</div>
+<div class="by">Tigran Sargsyan</div>
+<div class="progress" id="prog"></div>
+<div class="deck" id="deck"></div>
+<div class="nav"><button id="prev">‹</button><button id="next">›</button></div>
+<div class="counter"><b id="cur">1</b> / <span id="tot">33</span></div>
+<div class="hint">← → navigate · N notes · F fullscreen</div>
+<div class="notes" id="notes"><div class="nk">Speaker note</div><div class="nt" id="noteText"></div><div class="vis" id="visText"></div></div>
+<script>
+window.SLIDES = [
+
+/* ── 1 · TITLE ── */
+{sec:"PICSART · SUPPORT TEAM", center:true, title:`AUTOMATE THE <span class="grad">BORING PART</span>`,
+ body:`<div class="sub">n8n and Claude Code for the people who live in Zendesk and Sheets. Stop doing the same task twice.</div>
+   <div class="pulse"><div class="core"></div></div>
+   <div class="tbar"></div>
+   <div class="sub" style="font-size:15px;margin-top:22px">Tigran Sargsyan · Senior Product Operations Manager, Picsart</div>`,
+ note:"Welcome. In the next hour you'll leave with three things: you'll know the difference between an automation and an AI agent, you'll understand how a tool like Claude Code actually works under the hood, and you'll have a short list of things in your own job you can hand off to a machine. No prior experience needed. This is a first look, not a coding class.", vis:"Title + pulse orb"},
+
+/* ── 2 · HOW THIS HOUR WORKS ── */
+{sec:"HOW THIS HOUR WORKS", title:`HOW TONIGHT <span class="g">RUNS</span>`,
+ body:`<ul class="checklist">
+   <li>~45 minutes, then open <b>Q&amp;A</b>. About an hour total.</li>
+   <li>Recorded. You'll get the slides after.</li>
+   <li>Two quick <b>live demos</b>: one n8n workflow, one Claude Code run.</li>
+   <li>Nothing to install today. Just watch, and note what <b>you</b> would automate.</li>
+   <li>Interrupt any time. If it's confusing for you, it's confusing for five other people.</li>
+   </ul>`,
+ note:"Quick housekeeping. Forty-five minutes of content, then Q&A. It's recorded and you'll get the slides. I'll do two short live demos so you see the real thing, not just diagrams. You don't need to install anything today. The one job I'm giving you: as I talk, keep a list of the tasks in your week that feel repetitive. That list is your homework.", vis:"Housekeeping"},
+
+/* ── 3 · HOOK ── */
+{sec:"THE ONE IDEA", center:true, title:`YOU DID IT TWICE.<br>THE MACHINE CAN DO IT <span class="g">FOREVER.</span>`,
+ body:`<div class="sub" style="color:#fff;font-size:clamp(18px,2.2vw,27px)">Every tag you apply, every reply you paste, every weekly report you rebuild by hand, that's a candidate to hand off.</div>
+   <div class="cap">Tonight isn't about working harder. It's about setting up systems that work while you sleep.</div>`,
+ note:"Here's the one idea behind everything tonight. Any time you've done the exact same thing twice, a machine can probably do it the third time, and every time after. Applying the same tag, pasting the same reply, rebuilding the same weekly report. Those aren't your job. They're the boring part of your job. And they're exactly what we're going to hand off.", vis:"Pure type hook"},
+
+/* ── 4 · DIVIDER: PART 1 ── */
+{sec:"PART ONE", center:true, title:`THE BIG <span class="g">IDEA</span>`, divider:true,
+ body:`<div class="num">01</div><div class="sub">Two new teammates, and the one distinction that makes everything click.</div>`,
+ note:"Part one. Before any tools, I want you to hold one clear distinction in your head. Get this and the rest of the night is easy.", vis:"Section divider 01"},
+
+/* ── 5 · THE SHIFT ── */
+{sec:"THE SHIFT", title:`FROM DOING → <span class="g">DIRECTING</span>`,
+ body:`<div class="cards" style="margin-top:14px">
+   <div class="card"><div class="tag mut">The old way</div><h3>You do every step</h3><p>Open the ticket. Read it. Pick the tag. Find the macro. Paste it. Edit it. Log it. Repeat, 40 times a day. <b>Your hands are the engine.</b></p></div>
+   <div class="card good"><div class="tag">The new way</div><h3>You set it up once</h3><p>You describe the steps once, or you describe the goal once. The system runs it. You <b>review and handle the exceptions.</b> Your judgment is the engine.</p></div>
+   </div>
+   <div class="cap">You don't stop being the expert. You stop being the one clicking the buttons.</div>`,
+ note:"The shift is from doing to directing. Old way: you are the engine. Every step runs through your hands, and you can only go as fast as you can click. New way: you set the thing up once, and then you supervise it. Your value moves from your hands to your judgment, deciding what should happen, and catching the cases where the machine shouldn't be trusted. That's a promotion, not a threat.", vis:"Doing vs Directing"},
+
+/* ── 6 · TWO TEAMMATES ── */
+{sec:"YOUR TWO NEW TEAMMATES", title:`MEET THE <span class="g">TOOLS</span>`,
+ body:`<div class="cards" style="margin-top:14px">
+   <div class="card"><div class="tag">n8n</div><h3>The tireless assistant</h3><p>Follows a <b>recipe</b> you draw once. Same steps, every single time. Runs on a schedule or a trigger, 24/7, never forgets a step. Great at repetitive, predictable plumbing.</p></div>
+   <div class="card"><div class="tag">Claude Code</div><h3>The clever teammate</h3><p>You give it a <b>goal</b>, not a recipe. It figures out the steps, uses tools, reads and writes, and checks its own work. Great at fuzzy, one-off, judgment-heavy tasks.</p></div>
+   </div>
+   <div class="cap">One follows instructions perfectly. One figures things out. You'll use both, often together.</div>`,
+ note:"Two tools tonight. n8n is the tireless assistant. You draw it a recipe once, and it follows that recipe forever, exactly, on a schedule or whenever something happens. Claude Code is the clever teammate. You don't give it steps, you give it a goal, and it works out how to get there, using tools and checking itself. Rule of thumb: n8n for predictable plumbing, Claude Code for anything that needs a brain. The magic is combining them.", vis:"n8n vs Claude Code cards"},
+
+/* ── 7 · AUTOMATION VS AGENT ── */
+{sec:"THE KEY DISTINCTION", title:`AUTOMATION vs <span class="g">AGENT</span>`,
+ body:`<div class="blocks" style="margin-top:14px">
+   <div class="block"><div class="bl">Automation</div><p>A <b>fixed recipe</b>. If this, then that, then that. It does exactly what you drew, no more, no less. Predictable and cheap. If the input is weird, it breaks or does the wrong thing. <span style="color:#fff">→ this is n8n.</span></p></div>
+   <div class="block"><div class="bl">Agent</div><p>Given a <b>goal</b>, it decides the steps itself, picks tools, adapts when things are messy, and can check its own output. Flexible and smart. Costs more, needs supervision. <span style="color:#fff">→ this is Claude Code.</span></p></div>
+   </div>
+   <div class="cap"><b>Same idea, plain words:</b> an automation is a train on rails. An agent is a driver with a destination.</div>`,
+ note:"This is the distinction to keep. An automation is a fixed recipe, if this, then that. It's a train on rails: fast, reliable, cheap, but it can only go where the track goes. An agent is given a destination and drives there, choosing the route, adapting to traffic. More flexible, more powerful, but you want to keep an eye on the road. n8n gives you automations. Claude Code gives you an agent. Everything else tonight hangs off this one slide.", vis:"Automation vs Agent blocks"},
+
+/* ── 8 · WHEN TO USE WHICH ── */
+{sec:"WHEN TO USE WHICH", title:`PICK THE RIGHT <span class="g">ONE</span>`,
+ body:`<div class="rows">
+   <div class="row"><div class="a">Same steps, over and over, on a schedule</div><div class="arw">→</div><div class="b"><b>n8n</b> · automation</div></div>
+   <div class="row"><div class="a">A trigger fires and a fixed thing must happen</div><div class="arw">→</div><div class="b"><b>n8n</b> · automation</div></div>
+   <div class="row"><div class="a">Needs reading, judgment, writing, "it depends"</div><div class="arw">→</div><div class="b"><b>Claude Code</b> · agent</div></div>
+   <div class="row"><div class="a">A one-off messy task you'll do once</div><div class="arw">→</div><div class="b"><b>Claude Code</b> · agent</div></div>
+   <div class="row"><div class="a">Always-on plumbing + a smart step in the middle</div><div class="arw">→</div><div class="b"><b>Both</b> · together</div></div>
+   </div>`,
+ note:"How to choose. If it's the same steps over and over, or something must happen the instant a trigger fires, that's n8n. If it needs reading, judgment, writing, if the honest answer is 'it depends', that's Claude Code. And the best real systems are both: n8n is the always-on plumbing, and it calls Claude in for the one step that needs a brain. We'll see that exact pattern later.", vis:"Decision rows"},
+
+/* ── 9 · GLOSSARY ── */
+{sec:"THE WORDS WE'LL USE", title:`QUICK <span class="g">GLOSSARY</span>`,
+ body:`<div class="gloss">
+   <div><span class="t">Trigger</span><span class="d">The thing that <b>starts</b> a workflow. A new ticket, a schedule, a button.</span></div>
+   <div><span class="t">Automation</span><span class="d">A saved <b>recipe</b> of steps that runs on its own.</span></div>
+   <div><span class="t">Agent</span><span class="d">An AI that's given a <b>goal</b> and works out the steps itself.</span></div>
+   <div><span class="t">Tool</span><span class="d">An action the AI can take, <b>read a file, send a Slack, call an app.</b></span></div>
+   <div><span class="t">MCP</span><span class="d">The <b>universal plug</b> that connects the AI to your apps (more soon).</span></div>
+   <div><span class="t">Skill</span><span class="d">Instructions you <b>teach once</b> so the AI does something your way.</span></div>
+   <div><span class="t">API</span><span class="d">A <b>doorway</b> that lets two apps talk to each other automatically.</span></div>
+   <div><span class="t">Prompt</span><span class="d">What you <b>ask</b> the AI, in plain language.</span></div>
+   </div>`,
+ note:"Eight words we'll keep using, don't memorize them, just get the gist. A trigger starts a workflow. An automation is a saved recipe. An agent is goal-driven AI. A tool is an action the AI can take. MCP is the universal plug into your apps, big one, coming up. A skill is know-how you teach it once. An API is a doorway between apps. A prompt is just what you ask, in plain English. If any of these blur, stop me.", vis:"Glossary of 8 terms"},
+
+/* ── 10 · DIVIDER: PART 2 ── */
+{sec:"PART TWO", center:true, title:`n8n`, divider:true,
+ body:`<div class="num">02</div><div class="sub">Automations that run without you. The always-on plumbing.</div>`,
+ note:"Part two: n8n. This is the tool for the boring, repeatable plumbing, the stuff that should just happen on its own.", vis:"Section divider 02"},
+
+/* ── 11 · WHAT IS n8n ── */
+{sec:"WHAT IS n8n", title:`n8n IS A <span class="g">VISUAL CANVAS</span>`,
+ body:`<div class="body">You drag boxes ("nodes") onto a canvas and connect them with lines. Each box is a step: <i>get data, make a decision, send a message.</i> No code required for most of it.</div>
+   <div class="flow" style="margin-top:22px">
+     <div class="node hot"><div class="nt">Trigger</div><div class="nd">New Zendesk ticket</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">Step</div><div class="nd">Check the topic</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">Step</div><div class="nd">Add a tag</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">Step</div><div class="nd">Ping Slack</div></div>
+   </div>
+   <div class="cap flowcap">If you can draw a flowchart of your task, you can build it in n8n. That's genuinely the skill.</div>`,
+ note:"n8n is a visual canvas. You drag boxes called nodes and connect them with lines. Each box is one step: fetch something, make a decision, send a message. It connects to hundreds of apps out of the box, Zendesk, Slack, Google Sheets, Gmail. And here's the honest truth: if you can sketch your task as a flowchart on a napkin, you can build it in n8n. The hard part isn't the tool, it's thinking clearly about the steps.", vis:"n8n canvas + node chain"},
+
+/* ── 12 · ANATOMY ── */
+{sec:"ANATOMY OF A WORKFLOW", title:`TRIGGER → STEPS → <span class="g">RESULT</span>`,
+ body:`<div class="blocks" style="margin-top:14px">
+   <div class="block"><div class="bl">1 · Trigger</div><p>What kicks it off. A schedule (<b>every Monday 9am</b>), an event (<b>new ticket</b>), or a webhook (<b>another app pokes it</b>).</p></div>
+   <div class="block"><div class="bl">2 · Steps</div><p>The work in the middle. Fetch data, filter, transform, branch on a condition, loop over rows.</p></div>
+   <div class="block"><div class="bl">3 · Action</div><p>The payoff. Send an email, post to Slack, update a sheet, reply in Zendesk.</p></div>
+   <div class="block"><div class="bl">Runs by itself</div><p>Once it's on, it runs on your trigger, <b>while you're asleep, on holiday, or in a meeting.</b></p></div>
+   </div>`,
+ note:"Every workflow has the same shape. A trigger that starts it, a schedule, an event, or a poke from another app. Steps in the middle that do the work, fetch, filter, transform, branch. And an action at the end that's the actual payoff, a Slack message, an updated sheet, a Zendesk reply. Once you switch it on, it runs on that trigger without you. That last part is the whole point: it works when you don't.", vis:"3-part anatomy"},
+
+/* ── 13 · SUPPORT EXAMPLE ── */
+{sec:"A SUPPORT EXAMPLE", title:`A TICKET <span class="g">TRIAGE</span> FLOW`,
+ body:`<div class="flow">
+     <div class="node hot"><div class="nt">Trigger</div><div class="nd">New ticket lands</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">Detect</div><div class="nd">Language + topic</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">Tag + Route</div><div class="nd">To the right queue</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">Draft</div><div class="nd">Suggested reply</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">Notify</div><div class="nd">You, in Slack</div></div>
+   </div>
+   <div class="cap flowcap">Every new ticket arrives <b>pre-sorted, pre-tagged, with a draft reply waiting.</b> You review and send. The 30 seconds of sorting per ticket? Gone.</div>`,
+ note:"Here's one in your world. A ticket lands. The workflow detects the language and the topic, tags it and routes it to the right queue, drafts a suggested reply, and pings you in Slack. So instead of a raw ticket, you open one that's already sorted, tagged, and has a draft waiting. You read it, fix what's wrong, send. Multiply the thirty seconds of sorting per ticket across a whole shift, that's the time you get back.", vis:"Zendesk triage flow"},
+
+/* ── 14 · LIVE DEMO ── */
+{sec:"LIVE · n8n", center:true, title:`LET'S BUILD <span class="g">ONE</span>`,
+ body:`<div class="mono" style="text-align:left;max-width:820px;margin:18px auto 0">
+<span class="dim"># Live on screen, building this together:</span>
+<span class="c">Schedule</span>  every weekday, 9:00
+   → <span class="c">Zendesk</span>  get yesterday's tickets
+   → <span class="c">Filter</span>    only the ones tagged "bug"
+   → <span class="c">Format</span>    count + top 3 subjects
+   → <span class="c">Slack</span>     post the summary to #support</div>
+   <div class="cap">Watch how little it takes. We draw 5 boxes, connect them, hit test.</div>`,
+ note:"[SWITCH TO n8n] Let me build one live so you see it's not scary. A simple daily digest: every weekday at 9, grab yesterday's tickets, keep only the bugs, count them and pull the top three subjects, post that to the support channel. I'll drag the five nodes, connect them, and hit test-run so you see real data flow through. [If the demo fails: fall back to this slide and walk the five steps, the point is the shape, not a flawless run.]", vis:"Live n8n build (fallback shown)"},
+
+/* ── 15 · REAL PROOF ── */
+{sec:"THIS IS ALREADY REAL", title:`RUNNING AT PICSART <span class="g">RIGHT NOW</span>`,
+ body:`<div class="body">Automations I built that run on their own, every day and week, no one presses a button:</div>
+   <div class="chiprow">
+     <span class="chip g"><b>Weekly</b> · social-trends report → team, Mondays</span>
+     <span class="chip g"><b>Daily</b> · 2 fresh content presets → Slack, 9am</span>
+     <span class="chip g"><b>On-event</b> · viral-post alert → GTM channel</span>
+     <span class="chip g"><b>Monthly</b> · full social report → 40 people</span>
+     <span class="chip g"><b>Weekly</b> · trend intelligence → shared sheet</span>
+   </div>
+   <div class="cap" style="margin-top:22px">Five systems. Combined, they'd be a part-time job. Now they're a schedule. <b>This is exactly the kind of thing you can build.</b></div>`,
+ note:"This isn't theory. These five things run at Picsart right now, built on the same tools you're seeing tonight. A weekly social-trends report that writes and sends itself Monday mornings. Two fresh content presets dropped in Slack every day at nine. A viral-post alert that fires the moment a post pops. A full monthly social report to forty people. Trend intelligence into a shared sheet. Added up, that's a part-time job's worth of work, and now it's just a schedule. You can build things exactly like this.", vis:"Real Picsart automations"},
+
+/* ── 16 · DIVIDER: PART 3 ── */
+{sec:"PART THREE", center:true, title:`CLAUDE <span class="g">CODE</span>`, divider:true,
+ body:`<div class="num">03</div><div class="sub">An AI that doesn't just talk, it does the work. And how it actually works inside.</div>`,
+ note:"Part three, and the heart of the night: Claude Code. This is where 'AI' stops being a chatbot and starts being a teammate that gets things done. I'll also open the hood so you understand why it works, not just that it works.", vis:"Section divider 03"},
+
+/* ── 17 · WHAT IS CLAUDE CODE ── */
+{sec:"WHAT IS CLAUDE CODE", title:`NOT A CHATBOT. <span class="g">A DOER.</span>`,
+ body:`<div class="cards" style="margin-top:14px">
+   <div class="card"><div class="tag mut">A chatbot</div><h3>Talks</h3><p>You ask, it answers in the chat window. Then <b>you</b> go do the thing it described. It can't touch anything.</p></div>
+   <div class="card good"><div class="tag">Claude Code</div><h3>Acts</h3><p>Lives where your work lives, your files, your apps, your tools. It <b>reads, writes, runs steps, and finishes the task</b>, then reports back.</p></div>
+   </div>
+   <div class="cap">Same underlying AI. The difference is it's been given <b>hands</b>, the ability to actually take actions.</div>`,
+ note:"So what makes Claude Code different from a chatbot you've used? A chatbot talks. You ask, it answers, and then you go and do the work yourself. Claude Code acts. It lives where your work already is, your files, your apps, your tools, and it actually does the multi-step task and reports back. Same brain as a chatbot. The difference is we gave it hands: the ability to take real actions in real systems. Hold that word, hands, we'll come back to it.", vis:"Chatbot vs doer"},
+
+/* ── 18 · THE AGENT LOOP ── */
+{sec:"HOW IT ACTUALLY WORKS", title:`THE AGENT <span class="g">LOOP</span>`,
+ body:`<svg class="dsvg" viewBox="0 0 1000 300" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="Barlow,sans-serif">
+   <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#EC5FDE"/></marker></defs>
+   <!-- boxes -->
+   <g>
+     <rect x="20" y="120" width="150" height="70" rx="12" fill="#161019" stroke="#EC5FDE" stroke-width="2"/>
+     <text x="95" y="150" fill="#fff" font-weight="800" font-size="17" text-anchor="middle">GOAL</text>
+     <text x="95" y="172" fill="#9a8fa6" font-size="11" text-anchor="middle">what you asked</text>
+   </g>
+   <g>
+     <rect x="270" y="120" width="150" height="70" rx="12" fill="#161019" stroke="#2e2434" stroke-width="2"/>
+     <text x="345" y="150" fill="#EC5FDE" font-weight="800" font-size="17" text-anchor="middle">THINK</text>
+     <text x="345" y="172" fill="#9a8fa6" font-size="11" text-anchor="middle">plan next step</text>
+   </g>
+   <g>
+     <rect x="470" y="120" width="150" height="70" rx="12" fill="#161019" stroke="#2e2434" stroke-width="2"/>
+     <text x="545" y="147" fill="#EC5FDE" font-weight="800" font-size="17" text-anchor="middle">ACT</text>
+     <text x="545" y="169" fill="#9a8fa6" font-size="11" text-anchor="middle">use a tool</text>
+   </g>
+   <g>
+     <rect x="670" y="120" width="150" height="70" rx="12" fill="#161019" stroke="#2e2434" stroke-width="2"/>
+     <text x="745" y="147" fill="#EC5FDE" font-weight="800" font-size="17" text-anchor="middle">OBSERVE</text>
+     <text x="745" y="169" fill="#9a8fa6" font-size="11" text-anchor="middle">see the result</text>
+   </g>
+   <g>
+     <rect x="880" y="120" width="110" height="70" rx="12" fill="#EC5FDE" stroke="#EC5FDE" stroke-width="2"/>
+     <text x="935" y="150" fill="#0a070c" font-weight="900" font-size="17" text-anchor="middle">DONE</text>
+     <text x="935" y="172" fill="#0a070c" font-size="11" text-anchor="middle">report back</text>
+   </g>
+   <!-- arrows -->
+   <line x1="170" y1="155" x2="264" y2="155" stroke="#EC5FDE" stroke-width="2" marker-end="url(#ar)"/>
+   <line x1="420" y1="155" x2="464" y2="155" stroke="#EC5FDE" stroke-width="2" marker-end="url(#ar)"/>
+   <line x1="620" y1="155" x2="664" y2="155" stroke="#EC5FDE" stroke-width="2" marker-end="url(#ar)"/>
+   <line x1="820" y1="155" x2="874" y2="155" stroke="#EC5FDE" stroke-width="2" marker-end="url(#ar)"/>
+   <!-- loop back OBSERVE -> THINK -->
+   <path d="M745 120 C745 40, 345 40, 345 116" stroke="#FF5AA0" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#ar)"/>
+   <text x="545" y="34" fill="#FF5AA0" font-size="13" font-weight="700" text-anchor="middle">not done yet? loop again</text>
+ </svg>
+ <div class="cap">Think → act → look at what happened → think again. It repeats this loop until the goal is met. <b>That's the entire secret.</b></div>`,
+ note:"This is the single most important slide of the night. How does an agent actually work? It runs a loop. It takes your goal, thinks about the next step, acts by using one tool, observes what happened, and then thinks again with that new information. Step, look, adjust, repeat, until the goal is done, then it reports back. That's it. That's the whole magic. It's not one giant leap of genius; it's a tight loop of small, checked steps. Exactly how a careful human works through a messy task.", vis:"Agent loop diagram"},
+
+/* ── 19 · TOOLS ── */
+{sec:"TOOLS = ITS HANDS", title:`WHAT IT CAN ACTUALLY <span class="g">DO</span>`,
+ body:`<div class="blocks" style="margin-top:14px">
+   <div class="block"><div class="bl">Read &amp; write files</div><p>Open a spreadsheet, read a doc, write a report, edit a file.</p></div>
+   <div class="block"><div class="bl">Run commands</div><p>Execute real steps on a computer, search, count, convert, process.</p></div>
+   <div class="block"><div class="bl">Search the web</div><p>Look things up, pull in fresh info, check a fact.</p></div>
+   <div class="block"><div class="bl">Reach your apps</div><p>Zendesk, Sheets, Slack, databases, through MCP (next slide).</p></div>
+   </div>
+   <div class="cap">The loop is only as powerful as the tools it can reach. <b>More tools = more it can finish on its own.</b></div>`,
+ note:"Remember I said we gave it hands? The hands are tools. In each 'act' step of the loop, it uses one tool. It can read and write files, run real commands on a computer, search the web, and reach into your apps. Here's the key insight: the agent is only as capable as the tools it can touch. Give it access to Zendesk and Sheets, and suddenly it can do your Zendesk-and-Sheets work. Which raises the obvious question, how does it plug into those apps? That's the next slide, and it's a big one.", vis:"Four tool categories"},
+
+/* ── 20 · MCP ── */
+{sec:"MCP · THE UNIVERSAL PLUG", title:`ONE STANDARD PLUG: <span class="g">MCP</span>`,
+ body:`<svg class="dsvg" viewBox="0 0 1000 380" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="Barlow,sans-serif" style="max-width:860px">
+   <!-- spokes -->
+   <g stroke="#2e2434" stroke-width="2">
+     <line x1="500" y1="190" x2="500" y2="70"/>
+     <line x1="500" y1="190" x2="800" y2="120"/>
+     <line x1="500" y1="190" x2="800" y2="300"/>
+     <line x1="500" y1="190" x2="200" y2="300"/>
+     <line x1="500" y1="190" x2="200" y2="120"/>
+   </g>
+   <!-- MCP labels on spokes -->
+   <g font-size="10" fill="#FF5AA0" font-weight="700" text-anchor="middle">
+     <text x="500" y="128">MCP</text><text x="655" y="145">MCP</text>
+     <text x="655" y="255">MCP</text><text x="345" y="255">MCP</text><text x="345" y="145">MCP</text>
+   </g>
+   <!-- outer app nodes -->
+   <g text-anchor="middle">
+     <g><rect x="430" y="34" width="140" height="52" rx="10" fill="#161019" stroke="#EC5FDE" stroke-width="2"/><text x="500" y="66" fill="#fff" font-weight="700" font-size="15">Zendesk</text></g>
+     <g><rect x="720" y="94" width="160" height="52" rx="10" fill="#161019" stroke="#EC5FDE" stroke-width="2"/><text x="800" y="126" fill="#fff" font-weight="700" font-size="15">Google Sheets</text></g>
+     <g><rect x="730" y="274" width="150" height="52" rx="10" fill="#161019" stroke="#EC5FDE" stroke-width="2"/><text x="805" y="306" fill="#fff" font-weight="700" font-size="15">Slack</text></g>
+     <g><rect x="120" y="274" width="160" height="52" rx="10" fill="#161019" stroke="#EC5FDE" stroke-width="2"/><text x="200" y="306" fill="#fff" font-weight="700" font-size="15">Databricks</text></g>
+     <g><rect x="120" y="94" width="160" height="52" rx="10" fill="#161019" stroke="#EC5FDE" stroke-width="2"/><text x="200" y="126" fill="#fff" font-weight="700" font-size="15">Picsart GenAI</text></g>
+   </g>
+   <!-- center -->
+   <circle cx="500" cy="190" r="66" fill="#C209C1"/><circle cx="500" cy="190" r="66" fill="none" stroke="#FF5AA0" stroke-width="2"/>
+   <text x="500" y="184" fill="#fff" font-weight="900" font-size="16" text-anchor="middle">CLAUDE</text>
+   <text x="500" y="204" fill="#fff" font-weight="900" font-size="16" text-anchor="middle">CODE</text>
+ </svg>
+ <div class="cap"><b>MCP = a universal adapter, like USB-C for AI.</b> Instead of a custom wire to every app, each app speaks one standard. Plug it in, and the agent can use it.</div>`,
+ note:"This is how the agent reaches your apps. MCP stands for Model Context Protocol, but forget the name, here's the picture. It's a universal adapter, like USB-C. Before USB-C, every device had its own weird cable. MCP is one standard plug: any app that speaks it can be connected to the AI, instantly. At Picsart I've plugged in Zendesk, Google Sheets, Slack, our data warehouse, our own Picsart GenAI models. Once an app is plugged in through MCP, the agent can use it in its loop like any other tool. That's the whole trick to making it useful in your actual job.", vis:"MCP hub-and-spoke"},
+
+/* ── 21 · SKILLS ── */
+{sec:"SKILLS · TEACH IT ONCE", title:`TEACH IT THE <span class="g">PICSART WAY</span>`,
+ body:`<div class="body">A <b>skill</b> is a little folder of instructions the agent loads only when it's relevant. You write "here's how we do X" once, the agent then does X your way, consistently, forever.</div>
+   <div class="blocks" style="margin-top:20px">
+     <div class="block"><div class="bl">Brand voice</div><p>"Write replies in Picsart's tone." Teach it once → every draft sounds on-brand.</p></div>
+     <div class="block"><div class="bl">Report format</div><p>"Our reports look like this." → every report comes out in the house style.</p></div>
+   </div>
+   <div class="cap">It's the difference between re-explaining yourself every time, and training a teammate once.</div>`,
+ note:"Next piece: skills. A skill is a small folder of instructions the agent picks up only when it's relevant to the task. Think of it as onboarding a new teammate. You explain 'here's how we write replies at Picsart,' or 'here's what our reports look like', once. From then on, the agent does it that way every time, without you re-explaining. I have skills for our brand voice, for report design, for writing LinkedIn posts. Write the know-how down once, reuse it forever. That's leverage.", vis:"Skills examples"},
+
+/* ── 22 · AGENTS / SUBAGENTS ── */
+{sec:"AGENTS · IT CAN DELEGATE", title:`ONE AGENT, <span class="g">MANY HELPERS</span>`,
+ body:`<div class="body">For bigger jobs, the main agent can spin up focused <b>helper agents</b>, each with its own narrow task, and run them at the same time.</div>
+   <div class="cards" style="margin-top:18px">
+     <div class="card"><div class="tag">Without helpers</div><h3>One at a time</h3><p>Reads 50 tickets one after another. Slower, and it can lose the thread on a long job.</p></div>
+     <div class="card good"><div class="tag">With helpers</div><h3>In parallel</h3><p>Splits the 50 tickets across 5 helpers, each summarizes 10, then combines. <b>Faster, and each stays focused.</b></p></div>
+   </div>
+   <div class="cap">Same idea as a team lead handing pieces to teammates, then pulling the results together.</div>`,
+ note:"Agents can delegate. For a big job, the main agent can spin up helper agents, each with one narrow focus, and run them at the same time. Say you need fifty long ticket threads summarized. Instead of grinding through them one by one, it hands ten to each of five helpers, they work in parallel, and it combines the results. It's exactly what a good team lead does, break the work up, hand out the pieces, pull it back together. You end up directing a small team of AIs, not doing it all yourself.", vis:"Solo vs parallel helpers"},
+
+/* ── 23 · GLOBAL / LOCAL / SERVER ── */
+{sec:"WHERE THINGS LIVE", title:`GLOBAL · LOCAL · <span class="g">SERVER</span>`,
+ body:`<div class="cols3" style="margin-top:14px">
+   <div class="card"><div class="tag">Global</div><h3>Everywhere</h3><p>Your personal defaults and skills. Follow you into <b>every</b> project. "Always write in my voice."</p></div>
+   <div class="card"><div class="tag">Local</div><h3>This project only</h3><p>Rules, skills and tools for <b>one</b> job. The Zendesk project knows Zendesk things; nothing leaks between jobs.</p></div>
+   <div class="card"><div class="tag">Server</div><h3>Runs remotely</h3><p>MCP connections and scheduled runs that live on a server, they work <b>even when your laptop is closed.</b></p></div>
+   </div>
+   <div class="cap">Global = who you always are. Local = this specific job. Server = the stuff that keeps running without you.</div>`,
+ note:"People get confused about where all this lives, so here's the simple map. Global is your personal layer, your defaults and skills that follow you into every project, like 'always write in my voice.' Local is per-project, rules and tools that belong to one job only, so your Zendesk setup and your reporting setup don't bleed into each other. And server is the stuff that runs remotely, connections and scheduled jobs that live on a server and keep working even when your laptop is shut. Global is who you are, local is this job, server is what runs without you.", vis:"Global / Local / Server"},
+
+/* ── 24 · MEMORY ── */
+{sec:"MEMORY · IT REMEMBERS", title:`IT GETS BETTER <span class="g">OVER TIME</span>`,
+ body:`<div class="body">The agent keeps notes on your preferences and context in a memory file. Tell it once, and it stops asking again.</div>
+   <div class="mono" style="max-width:820px">
+<span class="dim"># from my memory file:</span>
+<span class="c">preference</span>  never use em-dashes; use periods and commas
+<span class="c">preference</span>  default Slack channel for agent output → #tik-agents
+<span class="c">preference</span>  reports: clean, white cards, one accent colour
+<span class="c">context</span>     support tickets live in Zendesk; escalate bugs to Jira</div>
+   <div class="cap">Like a colleague who actually remembers how you like things done. The longer you work together, the less you repeat yourself.</div>`,
+ note:"Last architecture piece: memory. The agent keeps a notes file about you, your preferences, your context, how you like things. You tell it once and it stops asking. Mine knows I hate em-dashes, which Slack channel my agents post to, how I like reports to look, where our tickets live. It's the difference between a temp who forgets everything overnight and a colleague who's worked with you for a year. The more you use it, the more it just knows.", vis:"Memory file example"},
+
+/* ── 25 · THE PICSART SYSTEM ── */
+{sec:"IT ALL WIRES TOGETHER", title:`MY PICSART <span class="g">COMMAND CENTER</span>`,
+ body:`<div class="body">Everything you just learned, running as one system I use every day:</div>
+   <div class="blocks" style="margin-top:18px">
+     <div class="block"><div class="bl">Skills + Memory</div><p>Knows my voice, my formats, my preferences, no re-explaining.</p></div>
+     <div class="block"><div class="bl">MCPs plugged in</div><p>Sheets, Slack, our data warehouse, Picsart's own AI models.</p></div>
+     <div class="block"><div class="bl">Scheduled agents</div><p>A morning brief, nightly syncs, weekly reports, on their own.</p></div>
+     <div class="block"><div class="bl">One dashboard</div><p>A cockpit that shows what every agent is doing, live.</p></div>
+   </div>
+   <div class="cap">None of this is exotic. It's the <b>same building blocks from tonight</b>, snapped together.</div>`,
+ note:"Let me show you the pieces snapped together. This is my actual command center at Picsart. It has skills and memory so it knows my voice and preferences. It has MCPs plugged into Sheets, Slack, our data warehouse, and Picsart's own AI models. It has scheduled agents, a morning brief, nightly syncs, weekly reports, all running on their own. And a single dashboard that shows me what every agent is doing live. [Optional: switch to the dashboard and give a 60-second tour.] The point isn't that it's fancy. It's that it's the exact same building blocks you just learned, clicked together.", vis:"Command center (optional live tour)"},
+
+/* ── 25b · BUILT WITH CLAUDE CODE (real screenshots) ── */
+{sec:"REAL OUTPUT", title:`BUILT BY <span class="g">DIRECTING AI</span>`,
+ body:`<div class="shots">
+   <div class="shot"><img src="assets/example-content-studio.png" alt="Content automation studio"><div class="lab"><b>Content automation studio</b><span>Pick a client, find on-trend ideas, generate a finished campaign. End to end.</span></div></div>
+   <div class="shot"><img src="assets/example-trend-replicator.png" alt="Trend Replicator"><div class="lab"><b>Trend Replicator</b><span>Paste a trend, get AI replicas, each one auto-scored by a quality judge.</span></div></div>
+   </div>
+   <div class="cap">Real internal tools, built by <b>describing what I wanted</b> to Claude Code, not hand-coding them. This is the ceiling you're working toward.</div>`,
+ note:"And here's what that setup actually produces. On the left, a content-automation studio: pick a client, find trends that fit them, and walk out with a finished campaign. On the right, Trend Replicator: paste any trending video and it generates on-brand replicas, each one automatically scored by an AI judge. The honest part is I didn't hand-code either of these. I described what I wanted to Claude Code and directed it. That's the ceiling you're building toward, and it's closer than it looks.", vis:"Real built tools (2 screenshots)"},
+
+/* ── 26 · DIVIDER: PART 4 ── */
+{sec:"PART FOUR", center:true, title:`YOUR <span class="g">TURN</span>`, divider:true,
+ body:`<div class="num">04</div><div class="sub">Putting it together for support, and what to do Monday morning.</div>`,
+ note:"Part four. Let's bring it home: how these two tools combine, and what you can actually do with this next week.", vis:"Section divider 04"},
+
+/* ── 27 · THE COMBO ── */
+{sec:"BETTER TOGETHER", title:`PLUMBING + <span class="g">BRAIN</span>`,
+ body:`<div class="flow">
+     <div class="node"><div class="nt">n8n</div><div class="nd">Ticket lands (trigger)</div></div>
+     <div class="arw">→</div>
+     <div class="node hot"><div class="nt">Claude</div><div class="nd">Reads it, drafts a smart reply</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">You</div><div class="nd">Review + approve</div></div>
+     <div class="arw">→</div>
+     <div class="node"><div class="nt">n8n</div><div class="nd">Posts to Zendesk</div></div>
+   </div>
+   <div class="cap flowcap"><b>n8n is the plumbing</b>, always on, moving things from A to B. <b>Claude is the brain</b>, the one step that needs judgment. Together they cover the whole task, and <b>you stay in the loop</b> at the approve step.</div>`,
+ note:"Here's the pattern that matters most for you. n8n is the plumbing: always on, catching the trigger, moving things from A to B. Claude is the brain: it steps in for the one part that needs judgment, reading a messy ticket and drafting a genuinely good reply. And crucially, you sit in the middle at the approve step. The automation handles the boring transport, the agent handles the thinking, and you keep the final say. Plumbing plus brain plus you. That's the shape of almost every good support automation.", vis:"n8n + Claude combo flow"},
+
+/* ── 28 · SUPPORT PLAYBOOK ── */
+{sec:"YOUR PLAYBOOK", title:`FIVE THINGS TO <span class="g">AUTOMATE</span>`,
+ body:`<ul class="checklist">
+   <li><b>Triage &amp; tag</b> incoming tickets by topic, language, urgency</li>
+   <li><b>Draft replies</b> from your macros + help-center, ready to review</li>
+   <li><b>Summarize</b> long threads into 3 lines before you escalate</li>
+   <li><b>Weekly ticket-trends</b> report → posted to Slack automatically</li>
+   <li><b>Answer "where is X?"</b> instantly from your own docs</li>
+   </ul>
+   <div class="cap">Start with the one that annoys you most. You don't need all five, you need one, working.</div>`,
+ note:"Five concrete things you could build, all in your world. Auto-triage and tag incoming tickets. Draft replies from your existing macros and help center, ready for you to review. Summarize long threads into three lines before escalating. A weekly ticket-trends report that posts itself to Slack. And instant answers to 'where do I find X' straight from your own docs. Don't try to build all five. Pick the one that annoys you the most and get that one working. Momentum comes from one win, not a master plan.", vis:"Support playbook checklist"},
+
+/* ── 29 · HOW TO ASK ── */
+{sec:"THE ONE SKILL", title:`HOW TO ASK IT: <span class="g">R·C·T·C</span>`,
+ body:`<div class="blocks" style="margin-top:14px">
+   <div class="block"><div class="bl">R · Role</div><p>Who it should be. "You're a Picsart support agent."</p></div>
+   <div class="block"><div class="bl">C · Context</div><p>What it needs to know. The ticket, the customer, the history.</p></div>
+   <div class="block"><div class="bl">T · Task</div><p>Exactly what to do. "Draft a reply that solves this."</p></div>
+   <div class="block"><div class="bl">C · Check</div><p>How to judge it. "Friendly, under 120 words, no promises we can't keep."</p></div>
+   </div>
+   <div class="cap">Vague in, vague out. <b>Role, Context, Task, Check</b>, the one habit that instantly makes your results better.</div>`,
+ note:"If you take one practical skill from tonight, take this. The quality of what you get out depends almost entirely on how you ask. Four parts: Role, who it should act as. Context, everything it needs to know. Task, exactly what to do. Check, how to know it's good. Role, context, task, check. Most bad AI results aren't the AI being dumb; they're a vague request. Give it these four and your output jumps overnight. Write them on a sticky note.", vis:"R·C·T·C framework"},
+
+/* ── 30 · GUARDRAILS ── */
+{sec:"GUARDRAILS · READ THIS TWICE", title:`STAY <span class="g">SAFE</span>`,
+ body:`<ul class="checklist">
+   <li><b>Human in the loop</b> on anything a customer will see. Always review before send.</li>
+   <li><b>Never auto-send</b> replies unattended while you're learning. Draft, don't fire.</li>
+   <li><b>Protect customer data.</b> Don't paste sensitive personal info where it doesn't belong.</li>
+   <li><b>Test on yourself first.</b> Run it on old, closed tickets before anything live.</li>
+   <li><b>Start read-only.</b> Let it suggest before you let it act.</li>
+   </ul>
+   <div class="cap">The goal is leverage, not autopilot into a wall. <b>Trust is earned one safe step at a time.</b></div>`,
+ note:"Now the serious slide, read it twice. Automation is powerful, and powerful things need guardrails, especially when customers are involved. Keep a human in the loop on anything a customer will see; always review before send. Don't set up unattended auto-send while you're still learning, draft, don't fire. Protect customer data; don't paste sensitive info where it shouldn't go. Test on old closed tickets before you ever touch a live one. And start read-only: let it suggest before you let it act. The goal is leverage, not flooring the accelerator toward a wall. Earn the trust one safe step at a time.", vis:"Five guardrails"},
+
+/* ── 31 · START SMALL ── */
+{sec:"WHAT TO DO MONDAY", center:true, title:`PICK <span class="g">ONE</span> THING`,
+ body:`<div class="sub" style="color:#fff">Look at that list you made tonight. Find the task you've done <b>three or more times</b> this week. That's the one. Automate it before you automate anything else.</div>
+   <div class="cap" style="margin-top:22px">The "done it 3+ times" rule. Small, real, finished, beats big, clever, never-shipped.</div>`,
+ note:"So what do you do Monday? Look at the list you've been keeping this hour. Find the one task you've done three or more times this week, the 'done it three times' rule. That's your first automation. Not the most ambitious one, the most repeated one. Small, real, and finished beats big, clever, and never shipped. Get one win, feel the time come back, and you'll be hooked.", vis:"Pick one task"},
+
+/* ── 32 · RECAP ── */
+{sec:"CLOSE", title:`FIVE THINGS TO <span class="g">KEEP</span>`,
+ body:`<ul class="recaplist">
+   <li><span class="n">1</span><span><b>Automation</b> = a fixed recipe. <b>Agent</b> = given a goal, figures it out.</span></li>
+   <li><span class="n">2</span><span>Agents work by a <b>loop</b>: think → act → observe → repeat.</span></li>
+   <li><span class="n">3</span><span><b>MCP</b> is the universal plug that connects AI to your apps.</span></li>
+   <li><span class="n">4</span><span>Keep a <b>human in the loop</b>, draft, review, then send.</span></li>
+   <li><span class="n">5</span><span>Automate anything you've done <b>3+ times.</b> Start with one.</span></li>
+   </ul>`,
+ note:"Five things to keep, and then your questions. One: automation is a fixed recipe, an agent is given a goal and figures out the steps. Two: agents work by a loop, think, act, observe, repeat. Three: MCP is the universal plug that connects AI to your apps. Four: keep a human in the loop, draft, review, send. Five: automate anything you've done three or more times, and start with just one. Get those five and you've got tonight.", vis:"Recap 5"},
+
+/* ── 33 · Q&A ── */
+{sec:"CLOSE", center:true, title:`QUESTIONS?`,
+ body:`<div class="rule"></div>
+   <div class="sub">Ask me anything.</div>
+   <div class="cap" style="margin-top:18px">Thanks for the hour. Now go find your <b>boring part.</b></div>`,
+ note:"That's the hour. Let's take your questions, unmute or drop them in the chat. Standing offer: bring me one repetitive task and we'll build your first automation together.", vis:"Q&A"},
+
+];
+// -- engine --
+const deck=document.getElementById('deck');
+window.SLIDES.forEach(s=>{const el=document.createElement('section');el.className='slide'+(s.center?' center':'')+(s.divider?' divider':'');
+  el.innerHTML=`<div class="wrap"><div class="kicker">${s.sec||''}</div><h1 class="title">${s.title||''}</h1><div class="body">${s.body||''}</div></div>`;deck.appendChild(el);});
+const slides=[...deck.querySelectorAll('.slide')];
+const totEl=document.getElementById('tot');if(totEl)totEl.textContent=slides.length;
+let i=0;const prog=document.getElementById('prog'),cur=document.getElementById('cur');
+const notes=document.getElementById('notes'),noteText=document.getElementById('noteText'),visText=document.getElementById('visText');
+function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+  if(prog)prog.style.width=((i+1)/slides.length*100)+'%';if(cur)cur.textContent=i+1;
+  if(noteText)noteText.textContent=(window.SLIDES[i]&&window.SLIDES[i].note)||'';
+  if(visText)visText.innerHTML=(window.SLIDES[i]&&window.SLIDES[i].vis)?('<b>Visual:</b> '+window.SLIDES[i].vis):'';
+  location.hash=(i+1);}
+function next(){show(i+1)}function prev(){show(i-1)}
+const nb=document.getElementById('next'),pb=document.getElementById('prev');if(nb)nb.onclick=next;if(pb)pb.onclick=prev;
+addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+  else if(e.key==='Home'){show(0);}else if(e.key==='End'){show(slides.length-1);}
+  else if(e.key.toLowerCase()==='n'){notes&&notes.classList.toggle('on');}
+  else if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}});
+show((parseInt(location.hash.replace('#',''))||1)-1);
+</script>
+</body>
+</html>
